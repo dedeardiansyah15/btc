@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Prediksi Harga Bitcoin</title>
+    <!-- Bootstrap CSS CDN -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+</head>
+<body>
+    <div class="container mt-4">
+        <!-- Judul Halaman -->
+        <h1 class="text-center mb-4">Prediksi Harga Bitcoin untuk 24 Jam Ke Depan</h1>
+
+        <!-- Tampilkan Harga Bitcoin Hari Ini -->
+        <div id="current-price" class="alert alert-info text-center" style="font-size: 24px;">
+            <strong>Harga Bitcoin Hari Ini:</strong> <span id="btc-price">Memuat...</span>
+        </div>
+
+        <!-- Tampilkan Grafik -->
+        <div id="btc-graph" class="my-4" style="width: 100%; height: 500px;"></div>
+
+        <!-- Tabel Prediksi -->
+        <h2 class="mt-4">Prediksi Harga Bitcoin untuk 24 Jam Berikutnya</h2>
+        <div id="prediction-output">
+            <!-- Hasil prediksi harga akan dimunculkan di sini -->
+        </div>
+    </div>
+
+    <script>
+        // Fungsi untuk mengambil data harga Bitcoin per jam selama 1 hari
+        async function fetchBitcoinDataHourly() {
+            const url = 'https://api.coingecko.com/api/v3/coins/bitcoin/market_chart?vs_currency=usd&days=1&interval=hourly';
+            try {
+                const response = await fetch(url);
+                const data = await response.json();
+
+                // Ambil data harga dan jam
+                const hours = data.prices.map(item => new Date(item[0]).toLocaleTimeString());
+                const prices = data.prices.map(item => item[1]);
+
+                return { hours, prices };
+            } catch (error) {
+                console.error('Terjadi kesalahan saat mengambil data:', error);
+                return { hours: [], prices: [] };
+            }
+        }
+
+        // Fungsi untuk mendapatkan harga Bitcoin hari ini
+        async function fetchCurrentBitcoinPrice() {
+            const url = 'https://api.coingecko.com/api/v3/simple/price?ids=bitcoin&vs_currencies=usd';
+            try {
+                const response = await fetch(url);
+                const data = await response.json();
+                const currentPrice = data.bitcoin.usd;
+                document.getElementById('btc-price').innerText = `$${currentPrice.toLocaleString()}`;
+            } catch (error) {
+                console.error('Terjadi kesalahan saat mengambil harga Bitcoin hari ini:', error);
+            }
+        }
+
+        // Fungsi untuk membuat grafik prediksi
+        function plotPredictionGraph(hours, predictedPrices) {
+            const trace = {
+                x: hours,
+                y: predictedPrices,
+                type: 'scatter',
+                mode: 'lines+markers',
+                name: 'Prediksi Harga Bitcoin',
+            };
+
+            const layout = {
+                title: 'Prediksi Harga Bitcoin untuk 24 Jam Ke Depan',
+                xaxis: {
+                    title: 'Jam',
+                    tickmode: 'array',
+                    tickvals: hours,
+                    ticktext: hours,
+                },
+                yaxis: { title: 'Harga BTC (USD)' },
+            };
+
+            const graphData = [trace];
+
+            // Render grafik ke dalam div
+            Plotly.newPlot('btc-graph', graphData, layout);
+        }
+
+        // Fungsi untuk menampilkan hasil prediksi
+        function displayPredictions(predictedPrices) {
+            let outputHTML = '<h3>Hasil Prediksi</h3><ul>';
+            predictedPrices.forEach((price, index) => {
+                outputHTML += `<li>Jam ${index + 1}: $${price.toFixed(2)}</li>`;
+            });
+            outputHTML += '</ul>';
+            document.getElementById('prediction-output').innerHTML = outputHTML;
+        }
+
+        // Fungsi untuk melakukan prediksi berdasarkan harga Bitcoin sebelumnya
+        function predictNext24Hours(lastPrice) {
+            const predictedPrices = [];
+            // Logika sederhana untuk prediksi: tambah sedikit fluktuasi setiap jam
+            for (let i = 0; i < 24; i++) {
+                const fluctuation = (Math.random() - 0.5) * 200; // Fluktuasi acak
+                predictedPrices.push(lastPrice + fluctuation);
+            }
+            return predictedPrices;
+        }
+
+        // Ambil data harga Bitcoin per jam dan tampilkan grafik
+        fetchBitcoinDataHourly()
+            .then(({ hours, prices }) => {
+                if (hours.length > 0 && prices.length > 0) {
+                    const lastPrice = prices[prices.length - 1];
+                    const predictedPrices = predictNext24Hours(lastPrice);
+
+                    // Tampilkan grafik prediksi
+                    plotPredictionGraph(hours.slice(0, 24), predictedPrices);
+
+                    // Tampilkan hasil prediksi
+                    displayPredictions(predictedPrices);
+                } else {
+                    alert("Data harga Bitcoin tidak tersedia.");
+                }
+            })
+            .catch(error => console.error("Terjadi kesalahan:", error));
+
+        // Ambil harga Bitcoin hari ini
+        fetchCurrentBitcoinPrice();
+    </script>
+
+    <!-- Bootstrap JS CDN (Optional) -->
+    <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.11.6/dist/umd/popper.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.min.js"></script>
+</body>
+</html>
